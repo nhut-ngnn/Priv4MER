@@ -150,7 +150,7 @@ python3 centralized/loso_runner.py --config centralized/configs/iemocap.yaml
 python3 federated/loso_runner.py --config federated/configs/iemocap.yaml
 ```
 
-Both runners support speaker/session-based folds and output per-fold/per-seed summaries.
+Both runners use session-based LOSO folds and output per-fold/per-seed summaries.
 
 ## Outputs
 

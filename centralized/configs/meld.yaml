@@ -1,0 +1,45 @@
+# Example configuration for centralized MELD pipeline
+# Usage:
+#   python centralized/run_meld_pipeline.py --config centralized/configs/meld_centralized.yaml
+
+dataset: MELD
+num_classes: 7
+run_id: run_20260331_MELD_L1
+
+model:
+  # Supported: fedalmer, memocmt, fleser, threemser, cemobam
+  name: fedalmer
+
+paths:
+  # Root containing MELD csv files (train/dev/test_sent_emo.csv) and audio splits.
+  data_root: /home/tri.pm/polyp/fptu/MinhNhut/MELD_audio
+  audio_root: /home/tri.pm/polyp/fptu/MinhNhut/MELD_audio
+  metadata_root:  /home/tri.pm/polyp/fptu/MinhNhut/FedalSER_document/metadata/MELD_centralized/${run_id}/
+  metadata_save_dir: /home/tri.pm/polyp/fptu/MinhNhut/FedalSER_document/metadata/MELD_centralized/${run_id}/
+  features_root:  /home/tri.pm/polyp/fptu/MinhNhut/FedalSER_document/features/MELD_centralized/${run_id}/
+  logs_root: logs_centralized
+  results_root: results
+
+extract:
+  # Set to your downloaded NRC Emotion Lexicon TSV file.
+  nrc_lexicon: /path/to/NRC-Emotion-Lexicon-Wordlevel-v0.92.txt
+
+preprocess:
+  seed: 42
+  ignore_length: 0
+
+train:
+  epochs: 50
+  supervised_epochs: 50
+  semi_epochs: 0
+  batch_size: 128
+  modality: both
+  labeled_ratio: 1.0
+  split_seed: null
+  pseudo_threshold: 0.96
+  lambda_u: 0.3
+  weak_word_dropout: 0.1
+  strong_word_dropout: 0.3
+  weak_audio_noise_std: 0.1
+  strong_audio_noise_std: 0.3
+  unlabeled_batch_size: null

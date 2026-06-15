@@ -1,0 +1,50 @@
+# Example configuration for centralized LOSO on IEMOCAP by session
+
+dataset: IEMOCAP
+num_classes: 4
+
+model:
+  # Supported: fedalmer, memocmt, fleser, threemser, cemobam
+  name: fedalmer
+
+paths:
+  data_root: /home/tri.pm/polyp/fptu/MinhNhut/IEMOCAP_full_release/
+  # Use federated metadata/features (client_* folders)
+  metadata_base: metadata/IEMOCAP_loso/clients
+  features_base: features/IEMOCAP/clients
+  logs_root: logs/centralized
+  results_root: results
+
+extract:
+  # Set to your downloaded NRC Emotion Lexicon TSV file.
+  nrc_lexicon: /path/to/NRC-Emotion-Lexicon-Wordlevel-v0.92.txt
+
+loso:
+  split_by: session
+  test_sessions: [1, 2, 3, 4, 5]
+  val_session: null
+  seed: 42
+  ignore_length: 0
+  exp_prefix: IEMOCAP_centralized
+  # run_id must match federated folder name under metadata/features
+  run_id: run_20250117_L0p3_C3
+  clean_metadata: false
+  clean_features: false
+  local_only: true
+
+train:
+  epochs: 50
+  supervised_epochs: 30
+  semi_epochs: 50
+  batch_size: 128
+  modality: both
+  labeled_ratio: 1.0
+  split_seed: null
+  pseudo_threshold: 0.94
+  lambda_u: 0.3
+  weak_word_dropout: 0.1
+  strong_word_dropout: 0.3
+  weak_audio_noise_std: 0.1
+  strong_audio_noise_std: 0.3
+  weak_text_noise_std: 0.0
+  strong_text_noise_std: 0.0

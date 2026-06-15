@@ -1,0 +1,9 @@
+{
+  "checkpoint": "/home/minhnhutngnn/Priv4MER/checkpoints/federated/MSP_IMPROV_loso_run_20250117_L1_C5_test_session1_clientval10_seed42/pretrain/global_round_best_37.pt",
+  "num_clients": 5,
+  "test_samples": 4945,
+  "global_WA": 0.5480283114256825,
+  "global_UA": 0.5523881744478614,
+  "global_WF1": 0.5472798765378043,
+  "global_UF1": 0.5477512766666677
+}

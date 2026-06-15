@@ -1,0 +1,60 @@
+# Example configuration for MSP-IMPROV LOSO by session
+
+dataset: MSP-IMPROV
+num_classes: 4
+
+model:
+  # Supported: fedalmer, memocmt, fleser, threemser, cemobam
+  name: fedalmer
+
+paths:
+  data_root: /home/minhnhutngnn/MSP-IMPROV
+  out_base: metadata/MSP_IMPROV_loso/clients
+  features_base: features/MSP_IMPROV/clients
+  checkpoints_root: checkpoints/federated
+  logs_root: logs/federated
+
+extract:
+  # Set to your downloaded NRC Emotion Lexicon TSV file.
+  nrc_lexicon: /Priv4MER/NRC-Emotion-Lexicon/NRC-Emotion-Lexicon-Wordlevel-v0.92.txt
+
+loso:
+  split_by: session
+  test_sessions: [1, 2, 3, 4, 5, 6]
+  # Each client keeps 10% of its local training bucket for validation.
+  client_val_ratio: 0.1
+  seeds: [42]
+  num_clients: 5
+  labeled_ratio: 1.0
+  min_labeled_per_client: 1
+  seed: 42
+  exp_prefix: MSP_IMPROV_loso
+  run_id: run_20250117_L1_C5
+  clean_metadata: false
+  clean_features: false
+  skip_eval: false
+  eval_checkpoint: best
+
+federated:
+  rounds_pretrain: 50
+  rounds_ssl: 0
+  local_epochs_pretrain: 5
+  local_epochs_ssl: 0
+  batch_size: 32
+  modality: both
+  lr: 0.0001
+  weight_decay: 0.01
+  weight_by: total
+  best_metric: global_UA
+  fl_method: fedavg
+  fedprox_mu: 0.0
+  scaffold_control_weighted: 0
+  num_workers: 5
+
+ssl:
+  tau: 0.96
+  lambda_u: 0.3
+  weak_word_dropout: 0.1
+  strong_word_dropout: 0.3
+  weak_audio_noise_std: 0.1
+  strong_audio_noise_std: 0.3
