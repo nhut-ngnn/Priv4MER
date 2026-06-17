@@ -8,7 +8,7 @@ model:
   name: fedalmer
 
 paths:
-  data_root: /home/minhnhut.ngnn/IEMOCAP_full_release/
+  data_root: /home/minhnhutngnn/IEMOCAP_full_release/
   out_base: metadata/IEMOCAP_loso/clients
   features_base: features/IEMOCAP/clients
   checkpoints_root: checkpoints/federated

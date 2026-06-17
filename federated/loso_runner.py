@@ -151,6 +151,8 @@ def _load_yaml_config(path):
     defaults["weak_audio_noise_std"] = ssl.get("weak_audio_noise_std")
     defaults["strong_audio_noise_std"] = ssl.get("strong_audio_noise_std")
     defaults["unlabeled_batch_size"] = ssl.get("unlabeled_batch_size")
+    extract = cfg.get("extract", {}) or {}
+    defaults["nrc_lexicon"] = extract.get("nrc_lexicon")
 
     return defaults
 
@@ -382,6 +384,8 @@ def parse_args():
     parser.add_argument("--logs_root", type=str, default="logs/federated")
     parser.add_argument("--eval_checkpoint", type=str, default="best", choices=["best", "latest"])
     parser.add_argument("--resume_global", type=str, default=None)
+    parser.add_argument("--nrc_lexicon", type=str, default=None,
+                        help="Optional NRC Emotion Lexicon word-level TSV path for feature extraction.")
 
     parser.add_argument("--skip_preprocess", action="store_true")
     parser.add_argument("--skip_features", action="store_true")
@@ -493,6 +497,8 @@ def main():
                     "--out_dir", out_dir,
                     "--wav_base", args.data_root,
                 ]
+                if args.nrc_lexicon:
+                    cmd += ["--nrc_lexicon", args.nrc_lexicon]
                 _run(cmd)
 
         for train_seed in seed_list:

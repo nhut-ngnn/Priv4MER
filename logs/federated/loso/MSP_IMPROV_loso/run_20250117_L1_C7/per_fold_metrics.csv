@@ -1,7 +1,0 @@
-fold,split_by,test_speaker,val_speaker,test_session,val_session,num_seeds,seed_list,test_samples,global_WA,global_WA_std,global_UA,global_UA_std,global_WF1,global_WF1_std,global_UF1,global_UF1_std,checkpoint
-test_session1_clientval10,session,,,1,,0,42,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,best
-test_session2_clientval10,session,,,2,,0,42,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,best
-test_session3_clientval10,session,,,3,,0,42,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,best
-test_session4_clientval10,session,,,4,,0,42,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,best
-test_session5_clientval10,session,,,5,,0,42,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,best
-test_session6_clientval10,session,,,6,,0,42,0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,best

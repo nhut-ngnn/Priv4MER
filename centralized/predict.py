@@ -33,6 +33,20 @@ from src.architecture.FedalMER import FedalMER
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def _ensure_float_tensor(value):
+    if isinstance(value, torch.Tensor):
+        return value.float()
+    return torch.tensor(value, dtype=torch.float32)
+
+
+def _text_with_nrc(item):
+    text = _ensure_float_tensor(item["text_embed"]).flatten()
+    nrc_embed = item.get("nrc_embed")
+    if nrc_embed is None:
+        return text
+    return torch.cat([text, _ensure_float_tensor(nrc_embed).flatten()], dim=0)
+
+
 def _normalize_label(label_value, label_map):
     if isinstance(label_value, torch.Tensor):
         label_value = label_value.item()
@@ -60,8 +74,8 @@ def load_data(pkl_path, label_map=None):
         data = pickle.load(f)
     if isinstance(data[0], tuple):
         raise ValueError(f"Loaded data is raw. Please provide feature-extracted .pkl: {pkl_path}")
-    text = torch.stack([torch.tensor(item['text_embed']) for item in data])
-    audio = torch.stack([torch.tensor(item['audio_embed']) for item in data])
+    text = torch.stack([_text_with_nrc(item) for item in data])
+    audio = torch.stack([_ensure_float_tensor(item['audio_embed']) for item in data])
     standard_map = {}
     labels = []
     for item in data:

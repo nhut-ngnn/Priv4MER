@@ -103,6 +103,8 @@ def _load_yaml_config(path):
     defaults["weak_audio_noise_std"] = train.get("weak_audio_noise_std")
     defaults["strong_audio_noise_std"] = train.get("strong_audio_noise_std")
     defaults["unlabeled_batch_size"] = train.get("unlabeled_batch_size")
+    extract = cfg.get("extract", {}) or {}
+    defaults["nrc_lexicon"] = extract.get("nrc_lexicon")
 
     return defaults
 
@@ -283,6 +285,8 @@ def parse_args():
     parser.add_argument("--weak_audio_noise_std", type=float, default=0.1)
     parser.add_argument("--strong_audio_noise_std", type=float, default=0.3)
     parser.add_argument("--unlabeled_batch_size", type=int, default=None)
+    parser.add_argument("--nrc_lexicon", type=str, default=None,
+                        help="Optional NRC Emotion Lexicon word-level TSV path for feature extraction.")
 
     parser.add_argument("--skip_preprocess", action="store_true")
     parser.add_argument("--skip_features", action="store_true")
@@ -409,6 +413,8 @@ def main():
                     "--pkl_dir", metadata_dir,
                     "--output_dir", features_dir,
                 ]
+                if args.nrc_lexicon:
+                    cmd += ["--nrc_lexicon", args.nrc_lexicon]
                 _run(cmd)
 
             results_suffix = f"{exp_name}_results"
@@ -549,6 +555,8 @@ def main():
                         "--pkl_dir", client_meta_dir,
                         "--output_dir", client_feat_dir,
                     ]
+                    if args.nrc_lexicon:
+                        cmd += ["--nrc_lexicon", args.nrc_lexicon]
                     _run(cmd)
                 elif not os.path.isdir(client_feat_dir):
                     raise FileNotFoundError(f"Missing client features: {client_feat_dir}")

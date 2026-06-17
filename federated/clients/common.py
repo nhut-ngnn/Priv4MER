@@ -21,9 +21,12 @@ FEATURE_FILES = {
 
 def build_model(num_classes, model_name="fedalmer", cfg=None):
     normalized_name = normalize_model_name(model_name)
+    cfg = cfg or {}
     return build_ser_model(
         model_name=normalized_name,
         num_classes=num_classes,
+        text_input_dim=int(cfg.get("text_input_dim", 768)),
+        audio_input_dim=int(cfg.get("audio_input_dim", 768)),
     )
 
 
@@ -67,6 +70,10 @@ def load_client_datasets(features_dir):
         "val": len(val_samples),
         "test": len(test_samples),
     }
+    feature_dims = {
+        "text": int(train_dataset.tensors[0].shape[-1]),
+        "audio": int(train_dataset.tensors[1].shape[-1]),
+    }
 
     return {
         "train_dataset": train_dataset,
@@ -74,6 +81,7 @@ def load_client_datasets(features_dir):
         "test_dataset": test_dataset,
         "unlabeled_dataset": unlabeled_dataset,
         "counts": counts,
+        "feature_dims": feature_dims,
     }
 
 
@@ -87,6 +95,7 @@ def _compute_class_weights(train_dataset, num_classes):
 
 
 def evaluate_global(client_id, cfg, features_dir, state_dict, split="test"):
+    cfg = dict(cfg)
     labeled_samples, labeled_path = _load_split(features_dir, "train_labeled")
     split_samples, split_path = _load_split(features_dir, split)
 
@@ -102,6 +111,8 @@ def evaluate_global(client_id, cfg, features_dir, state_dict, split="test"):
     label_map = {}
     _, label_map = build_tensor_dataset(labeled_samples, label_map=label_map)
     eval_dataset, _ = build_tensor_dataset(split_samples, label_map=label_map)
+    cfg["text_input_dim"] = int(eval_dataset.tensors[0].shape[-1])
+    cfg["audio_input_dim"] = int(eval_dataset.tensors[1].shape[-1])
 
     model = build_model(
         cfg["num_classes"],

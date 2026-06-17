@@ -5,6 +5,7 @@ import time
 import pickle
 import warnings
 import argparse
+import re
 
 import numpy as np
 import torch
@@ -22,6 +23,71 @@ from src.feature_extract.config import (
     TOKENIZER, AUDIO_PROCESSOR,
     TEXT_MODEL, AUDIO_MODEL
 )
+
+NRC_EMOTIONS = [
+    "anger",
+    "anticipation",
+    "disgust",
+    "fear",
+    "joy",
+    "negative",
+    "positive",
+    "sadness",
+    "surprise",
+    "trust",
+]
+_TOKEN_RE = re.compile(r"[a-zA-Z']+")
+
+
+def load_nrc_lexicon(path):
+    if not path:
+        return None
+    candidate = path
+    if not os.path.isfile(candidate):
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        alternatives = [
+            os.path.join(project_root, path.lstrip(os.sep)),
+            os.path.join(project_root, path.replace("/Priv4MER/", "", 1).lstrip(os.sep)),
+        ]
+        candidate = next((alt for alt in alternatives if os.path.isfile(alt)), path)
+    if not os.path.isfile(candidate):
+        print(f"[WARN] NRC lexicon not found at {path}; continuing without NRC features.")
+        return None
+    lexicon = {}
+    with open(candidate, "r", encoding="utf-8") as f:
+        for line in f:
+            parts = line.strip().split("\t")
+            if len(parts) < 3:
+                continue
+            word, emotion, value = parts[0].lower(), parts[1].lower(), parts[2]
+            if emotion not in NRC_EMOTIONS:
+                continue
+            try:
+                score = float(value)
+            except ValueError:
+                continue
+            if word not in lexicon:
+                lexicon[word] = np.zeros(len(NRC_EMOTIONS), dtype=np.float32)
+            lexicon[word][NRC_EMOTIONS.index(emotion)] = score
+    print(f"Loaded NRC lexicon: {len(lexicon)} words from {candidate}")
+    return lexicon
+
+
+def extract_nrc_features(text, lexicon):
+    if not lexicon:
+        return None
+    tokens = [tok.lower().strip("'") for tok in _TOKEN_RE.findall(text or "")]
+    scores = np.zeros(len(NRC_EMOTIONS), dtype=np.float32)
+    matched = 0
+    for token in tokens:
+        vector = lexicon.get(token)
+        if vector is None:
+            continue
+        scores += vector
+        matched += 1
+    if matched > 0:
+        scores = scores / float(matched)
+    return torch.from_numpy(scores)
 
 
 
@@ -92,7 +158,8 @@ def extract_text_features(text, tokenizer, model, device):
         print(f"[ERROR] Text failed: {text[:30]}... ({e})")
         return None
 
-def process_single_sample(audio_path, text, label, is_pseudo=False, confidence=None, skip_text=False):
+def process_single_sample(audio_path, text, label, is_pseudo=False, confidence=None,
+                          skip_text=False, nrc_lexicon=None):
     audio_embed = extract_audio_features(audio_path, AUDIO_PROCESSOR, AUDIO_MODEL, device)
     if audio_embed is None:
         return None
@@ -104,7 +171,7 @@ def process_single_sample(audio_path, text, label, is_pseudo=False, confidence=N
         if text_embed is None:
             return None
 
-    return {
+    sample = {
         "text_embed": text_embed,
         "audio_embed": audio_embed,
         "label": label,
@@ -114,9 +181,15 @@ def process_single_sample(audio_path, text, label, is_pseudo=False, confidence=N
         "raw_text": text,
         "audio_path": audio_path
     }
+    nrc_embed = extract_nrc_features(text, nrc_lexicon)
+    if nrc_embed is not None:
+        sample["nrc_embed"] = nrc_embed
+        sample["nrc_emotions"] = NRC_EMOTIONS
+    return sample
 
 
-def process_dataset(pkl_path, wav_base, output_path, pseudo=False, skip_text=False):
+def process_dataset(pkl_path, wav_base, output_path, pseudo=False, skip_text=False,
+                    nrc_lexicon=None):
     with open(pkl_path, "rb") as f:
         data = pickle.load(f)
 
@@ -169,6 +242,7 @@ def process_dataset(pkl_path, wav_base, output_path, pseudo=False, skip_text=Fal
             is_pseudo=pseudo,
             confidence=conf,
             skip_text=skip_text,
+            nrc_lexicon=nrc_lexicon,
         )
         if sample is not None:
             processed_samples.append(sample)
@@ -190,7 +264,7 @@ def _write_manifest(out_dir, manifest):
     print(f"Saved manifest to: {manifest_path}")
 
 
-def _process_client_dir(client_dir, out_dir, wav_base):
+def _process_client_dir(client_dir, out_dir, wav_base, nrc_lexicon=None):
     os.makedirs(out_dir, exist_ok=True)
     manifest = {
         "client_dir": os.path.abspath(client_dir),
@@ -222,15 +296,19 @@ def _process_client_dir(client_dir, out_dir, wav_base):
         sample_count = len(processed)
         text_dim = None
         audio_dim = None
+        nrc_dim = None
         if sample_count > 0:
             text_dim = list(processed[0]["text_embed"].shape)
             audio_dim = list(processed[0]["audio_embed"].shape)
+            if "nrc_embed" in processed[0]:
+                nrc_dim = list(processed[0]["nrc_embed"].shape)
         manifest["splits"][split_name] = {
             "input_path": os.path.abspath(input_path),
             "output_path": os.path.abspath(output_path),
             "count": sample_count,
             "text_dim": text_dim,
             "audio_dim": audio_dim,
+            "nrc_dim": nrc_dim,
         }
 
     _write_manifest(out_dir, manifest)
@@ -252,7 +330,10 @@ def main():
                         help="Directory containing train.pkl/val.pkl/test.pkl (non-client mode).")
     parser.add_argument("--output_dir", type=str, default=None,
                         help="Output directory for extracted features (non-client mode).")
+    parser.add_argument("--nrc_lexicon", type=str, default=None,
+                        help="Optional NRC Emotion Lexicon word-level TSV path.")
     args = parser.parse_args()
+    nrc_lexicon = load_nrc_lexicon(args.nrc_lexicon) if args.nrc_lexicon else None
 
     if args.client_dir:
         if args.wav_base is None:
@@ -262,7 +343,7 @@ def main():
         )
         print("Starting client feature extraction...")
         print(f"Using device: {device}")
-        _process_client_dir(args.client_dir, out_dir, args.wav_base)
+        _process_client_dir(args.client_dir, out_dir, args.wav_base, nrc_lexicon=nrc_lexicon)
         return
 
     output_dir = args.output_dir or OUTPUT_DIR
@@ -337,6 +418,7 @@ def main():
             output_path,
             pseudo=args.pseudo if split_name == "train" else False,
             skip_text=skip_text,
+            nrc_lexicon=nrc_lexicon,
         )
 
 if __name__ == "__main__":

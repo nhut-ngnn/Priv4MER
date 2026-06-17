@@ -146,6 +146,8 @@ def parse_args():
     parser.add_argument("--features_root", type=str, default="features/MELD/centralized")
     parser.add_argument("--logs_root", type=str, default="logs/centralized")
     parser.add_argument("--results_root", type=str, default="results")
+    parser.add_argument("--nrc_lexicon", type=str, default=None,
+                        help="Optional NRC Emotion Lexicon word-level TSV path for feature extraction.")
 
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--ignore_length", type=int, default=0)
@@ -177,6 +179,7 @@ def parse_args():
 
     if cfg:
         paths = cfg.get("paths", {}) or {}
+        extract_cfg = cfg.get("extract", {}) or {}
         model_cfg = cfg.get("model", {}) or {}
         _set_defaults_if_present(parser, {
             "dataset": cfg.get("dataset"),
@@ -189,6 +192,7 @@ def parse_args():
             "features_root": paths.get("features_root"),
             "logs_root": paths.get("logs_root"),
             "results_root": paths.get("results_root"),
+            "nrc_lexicon": extract_cfg.get("nrc_lexicon"),
             "model_name": model_cfg.get("name") or cfg.get("model_name"),
         })
 
@@ -288,6 +292,8 @@ def main():
             "--pkl_dir", metadata_dir,
             "--output_dir", features_dir,
         ]
+        if args.nrc_lexicon:
+            cmd += ["--nrc_lexicon", args.nrc_lexicon]
         _run(cmd)
     else:
         _ensure_files_exist(

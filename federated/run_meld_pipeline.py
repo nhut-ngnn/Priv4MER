@@ -137,6 +137,7 @@ def main():
     extract_clients_root = _with_run_id(extract_cfg.get("clients_root") or clients_root, run_id)
     extract_features_root = _with_run_id(extract_cfg.get("features_root") or features_root, run_id)
     audio_root = extract_cfg.get("audio_root") or data_root
+    nrc_lexicon = extract_cfg.get("nrc_lexicon")
 
     if not args.skip_preprocess:
         cmd = [
@@ -178,6 +179,8 @@ def main():
                 "--out_dir", out_dir,
                 "--wav_base", audio_root,
             ]
+            if nrc_lexicon:
+                cmd += ["--nrc_lexicon", nrc_lexicon]
             _run(cmd)
 
     if args.exp_name:

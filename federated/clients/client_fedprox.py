@@ -26,6 +26,7 @@ def local_train(
     save_path,
     **_unused,
 ):
+    cfg = dict(cfg)
     seed_value = cfg.get("seed")
     if seed_value is not None:
         try:
@@ -39,6 +40,8 @@ def local_train(
 
     datasets = load_client_datasets(features_dir)
     counts = datasets["counts"]
+    cfg["text_input_dim"] = datasets["feature_dims"]["text"]
+    cfg["audio_input_dim"] = datasets["feature_dims"]["audio"]
 
     model_name = normalize_model_name(cfg.get("model_name", "fedalmer"))
     model_display_name = get_model_display_name(model_name)

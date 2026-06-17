@@ -4,7 +4,7 @@ import multiprocessing as mp
 
 import torch
 from federated.clients.client_fedprox import local_train
-from federated.clients.common import evaluate_global, build_model
+from federated.clients.common import evaluate_global, build_model, load_client_datasets
 from federated.utils import (
     append_csv,
     ensure_dir,
@@ -58,6 +58,18 @@ def _init_global_state(cfg, resume_path=None, init_state_dict=None):
         return init_state_dict
     model = build_model(cfg["num_classes"], cfg.get("model_name", "fedalmer"), cfg=cfg)
     return model.state_dict()
+
+
+def _infer_feature_dims(cfg, clients, features_root):
+    if cfg.get("text_input_dim") and cfg.get("audio_input_dim"):
+        return cfg
+    if not clients:
+        return cfg
+    datasets = load_client_datasets(os.path.join(features_root, clients[0]))
+    cfg = dict(cfg)
+    cfg["text_input_dim"] = datasets["feature_dims"]["text"]
+    cfg["audio_input_dim"] = datasets["feature_dims"]["audio"]
+    return cfg
 
 
 def _aggregate_eval(eval_results, prefix):
@@ -138,6 +150,7 @@ def run_stage(
     clients = list_clients(clients_root, cfg.get("num_clients"))
     if not clients:
         raise ValueError(f"No clients found under {clients_root}")
+    cfg = _infer_feature_dims(cfg, clients, features_root)
 
     global_state = _init_global_state(cfg, resume_path=resume_path, init_state_dict=init_state_dict)
 

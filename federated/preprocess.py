@@ -524,6 +524,9 @@ def _collect_IEMOCAP_samples(args):
     label_map = LABEL_MAP_4
     valid_emotions = {"ang", "hap", "sad", "neu", "exc"}
 
+    if not os.path.isdir(data_root):
+        raise FileNotFoundError(f"IEMOCAP data root not found: {data_root}")
+
     session_samples = {sess_id: [] for sess_id in session_ids}
 
     for sess_id in tqdm.tqdm(session_ids, desc="Processing IEMOCAP"):
@@ -531,6 +534,9 @@ def _collect_IEMOCAP_samples(args):
         audio_root = os.path.join(sess_path, "sentences/wav")
         text_root = os.path.join(sess_path, "dialog/transcriptions")
         label_root = os.path.join(sess_path, "dialog/EmoEvaluation")
+        for required_dir in (audio_root, text_root, label_root):
+            if not os.path.isdir(required_dir):
+                raise FileNotFoundError(f"IEMOCAP directory not found: {required_dir}")
         label_files = glob.glob(os.path.join(label_root, "*.txt"))
 
         for label_file in label_files:

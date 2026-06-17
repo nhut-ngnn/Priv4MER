@@ -33,6 +33,14 @@ def _ensure_tensor(x):
     return torch.tensor(x, dtype=torch.float32)
 
 
+def _append_nrc_feature(base_text, item):
+    nrc_embed = item.get("nrc_embed")
+    if nrc_embed is None:
+        return base_text
+    nrc_tensor = _ensure_tensor(nrc_embed).flatten()
+    return torch.cat([base_text.flatten(), nrc_tensor], dim=0)
+
+
 def build_tensor_dataset(data, label_map=None):
     if label_map is None:
         label_map = {}
@@ -44,6 +52,7 @@ def build_tensor_dataset(data, label_map=None):
     for item in data:
         base_text = _ensure_tensor(item['text_embed'])
         base_audio = _ensure_tensor(item['audio_embed'])
+        base_text = _append_nrc_feature(base_text, item)
 
         text_tensors.append(base_text)
         audio_tensors.append(base_audio)
@@ -87,7 +96,7 @@ def build_unlabeled_dataset(data):
     if not data:
         return None
 
-    text_tensors = [_ensure_tensor(item['text_embed']) for item in data]
+    text_tensors = [_append_nrc_feature(_ensure_tensor(item['text_embed']), item) for item in data]
     audio_tensors = [_ensure_tensor(item['audio_embed']) for item in data]
 
     return TensorDataset(torch.stack(text_tensors), torch.stack(audio_tensors))
@@ -316,7 +325,14 @@ def main():
         pseudo_raw = list(pseudo_candidates) if pseudo_candidates else []
         pseudo_available = len(pseudo_raw)
 
-        model = build_model(model_name=model_name, num_classes=args.num_classes).to(device)
+        text_input_dim = int(train_dataset.tensors[0].shape[-1])
+        audio_input_dim = int(train_dataset.tensors[1].shape[-1])
+        model = build_model(
+            model_name=model_name,
+            num_classes=args.num_classes,
+            text_input_dim=text_input_dim,
+            audio_input_dim=audio_input_dim,
+        ).to(device)
 
         labeled_count = train_dataset.tensors[0].size(0)
         val_count = val_dataset.tensors[0].size(0)
